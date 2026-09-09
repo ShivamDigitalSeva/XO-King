@@ -2278,6 +2278,215 @@ console.log(
 updateProfile();
 
 </script>
+<script type="module">
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 
+import {
+  getAuth,
+  signInAnonymously,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAYcY9fnK9VKXePa39mNMCMc4Mrnw_UYIM",
+  authDomain: "xoking-2a49b.firebaseapp.com",
+  projectId: "xoking-2a49b",
+  storageBucket: "xoking-2a49b.firebasestorage.app",
+  messagingSenderId: "452125698114",
+  appId: "1:452125698114:web:e3d71571795421dcfe25db"
+};
+
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+window.XOKing = {
+  app,
+  auth,
+  db,
+  uid: null
+};
+
+
+/* Anonymous Login */
+
+signInAnonymously(auth)
+  .then(() => {
+    console.log("Anonymous login started");
+  })
+  .catch((error) => {
+    console.error("Anonymous login error:", error);
+  });
+
+
+onAuthStateChanged(auth, async (user) => {
+
+  if (!user) return;
+
+  window.XOKing.uid = user.uid;
+
+  console.log("Player ID:", user.uid);
+
+  const status =
+    document.getElementById("firebaseStatus");
+
+  if (status) {
+    status.textContent =
+      "🟢 Online • Player ID तैयार";
+  }
+
+  await loadOnlinePlayer();
+});
+
+
+/* Player document */
+
+async function loadOnlinePlayer() {
+
+  if (!window.XOKing.uid) return;
+
+  const ref = doc(
+    db,
+    "leaderboard",
+    window.XOKing.uid
+  );
+
+  try {
+
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+
+      await setDoc(ref, {
+        playerId: window.XOKing.uid,
+        name: "",
+        wins: 0,
+        games: 0,
+        coins: 0,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log("New player created");
+
+    } else {
+
+      console.log(
+        "Player loaded:",
+        snap.data()
+      );
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Player load error:",
+      error
+    );
+
+  }
+}
+
+
+/* Save player */
+
+window.saveOnlinePlayer =
+async function(name, wins, games, coins) {
+
+  if (!window.XOKing.uid) {
+    console.log("Firebase login not ready");
+    return;
+  }
+
+  const ref = doc(
+    db,
+    "leaderboard",
+    window.XOKing.uid
+  );
+
+  try {
+
+    await updateDoc(ref, {
+      name: String(name).trim().slice(0,20),
+      wins: Number(wins) || 0,
+      games: Number(games) || 0,
+      coins: Number(coins) || 0,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log("Online player saved");
+
+  } catch (error) {
+
+    console.error(
+      "Online save error:",
+      error
+    );
+
+  }
+};
+
+
+/* Online Leaderboard */
+
+window.loadOnlineLeaderboard =
+async function() {
+
+  try {
+
+    const q = query(
+      collection(db, "leaderboard"),
+      orderBy("wins", "desc"),
+      limit(20)
+    );
+
+    const snapshot =
+      await getDocs(q);
+
+    const list = [];
+
+    snapshot.forEach((item) => {
+      list.push(item.data());
+    });
+
+    console.log(
+      "Online leaderboard:",
+      list
+    );
+
+    return list;
+
+  } catch (error) {
+
+    console.error(
+      "Leaderboard error:",
+      error
+    );
+
+    return [];
+
+  }
+
+};
+
+</script>
 </body>
 </html>
