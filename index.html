@@ -820,51 +820,110 @@ onclick="newGame()">
 
 
 
-
 <!-- ================= ONLINE ROOM ================= -->
+<script>
+async function createOnlineRoom(){
 
-<div id="onlineRoom" class="screen">
+  if(!window.firebaseReady || !window.firebaseUser){
+    alert("Firebase अभी तैयार नहीं है। 5 सेकंड बाद फिर कोशिश करें।");
+    return;
+  }
 
-  <div class="header">
-    <button class="back" onclick="goHome()">🏠 Home</button>
-    <div class="game-title">🌐 Online Room</div>
-  </div>
+  const name = (playerName || "").trim() || "Player";
 
-  <div class="room-box">
+  const id = Math.random()
+    .toString(36)
+    .substring(2,8)
+    .toUpperCase();
 
-    <h3>👥 Online 2 Player</h3>
+  try {
 
-    <p class="small-note">
-      Room बनाकर दोस्त को Room ID दें, या किसी की Room ID डालकर Join करें।
-    </p>
+    const db = window.firebaseDB;
 
-    <button class="room-btn" onclick="createOnlineRoom()">
-      ➕ Create Room
-    </button>
+    if(!db){
+      throw new Error("Firebase Firestore Database उपलब्ध नहीं है");
+    }
 
-    <input
-      id="roomCodeInput"
-      class="room-input"
-      maxlength="6"
-      placeholder="6 अक्षर की Room ID">
+    const roomRef = window.dbDoc(
+      db,
+      "rooms",
+      id
+    );
 
-    <button class="room-btn secondary" onclick="joinOnlineRoom()">
-      🚪 Join Room
-    </button>
+    await window.dbSetDoc(
+      roomRef,
+      {
+        roomId: id,
 
-    <div id="roomInfo" class="room-status">
-      🔄 Online Room तैयार हो रहा है...
-    </div>
+        hostUid: window.firebaseUser.uid,
+        hostName: name,
 
-    <div id="roomCodeDisplay"></div>
+        guestUid: "",
+        guestName: "",
 
-  </div>
+        board: [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
 
-  <div class="small-note">
-    ⚠️ Online game Firebase Firestore पर चलता है।
-  </div>
+        turn: "X",
 
-</div>
+        status: "WAITING",
+
+        winner: "",
+
+        createdAt: window.dbServerTimestamp(),
+        updatedAt: window.dbServerTimestamp()
+      }
+    );
+
+    currentRoomId = id;
+    onlineRole = "X";
+
+    document.getElementById(
+      "roomCodeDisplay"
+    ).innerHTML =
+      '<div class="room-code">' +
+      id +
+      '</div>' +
+      '<div class="room-status">' +
+      '📤 यह Room ID अपने दोस्त को भेजें' +
+      '</div>';
+
+    document.getElementById(
+      "roomInfo"
+    ).textContent =
+      "⏳ दूसरा Player Join करने का इंतज़ार...";
+
+    listenOnlineRoom(id);
+
+  }
+  catch(error){
+
+    console.error(
+      "CREATE ROOM ERROR:",
+      error
+    );
+
+    alert(
+      "❌ Room नहीं बनी\n\n" +
+      "Error: " +
+      (error.code || "unknown") +
+      "\n\n" +
+      (error.message || error)
+    );
+
+  }
+}
+  </script>
+
 
 <!-- ================= LEADERBOARD ================= -->
 
